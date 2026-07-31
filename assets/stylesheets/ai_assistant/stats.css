@@ -1,0 +1,69 @@
+/* Redmine AI Assistant - Usage Statistics page styles */
+
+/* ========== 导出控制 ========== */
+.redmine-ai-assistant-stats-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.redmine-ai-assistant-stats-export a {
+  font-weight: 500;
+}
+
+/* ========== 统计卡片 ========== */
+.redmine-ai-assistant-stats-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.redmine-ai-assistant-stats-card {
+  flex: 1;
+  min-inline-size: 180px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.redmine-ai-assistant-stats-card--total {
+  border-color: #1976d2;
+  background: #e3f2fd;
+}
+.redmine-ai-assistant-stats-card__label {
+  font-size: 0.85em;
+  color: #666;
+  margin-block-end: 8px;
+}
+.redmine-ai-assistant-stats-card__value {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: #333;
+}
+.redmine-ai-assistant-stats-card__sub {
+  font-size: 0.9em;
+  color: #888;
+  margin-block-start: 4px;
+}
+.redmine-ai-assistant-stats-card__unit {
+  font-size: 0.55em;
+  font-weight: 400;
+  color: #999;
+}
+.redmine-ai-assistant-stats-period-info {
+  color: #888;
+  font-size: 0.85em;
+  margin-block-end: 24px;
+}
+.redmine-ai-assistant-stats-table {
+  inline-size: 100%;
+}
+.redmine-ai-assistant-stats-col--num {
+  text-align: end !important;
+  white-space: nowrap;
+}
+.redmine-ai-assistant-stats-col--date {
+  white-space: nowrap;
+  font-size: 0.9em;
+  color: #666;
+}

@@ -1,0 +1,54 @@
+<div class="contextual">
+  <%= link_to l(:label_ai_provider_new),
+              new_ai_assistant_provider_path,
+              class: 'icon icon-add' %>
+</div>
+
+<h2><%= l(:label_ai_providers) %></h2>
+
+<% if @providers.any? %>
+  <table class="list redmine-ai-assistant-providers">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:field_slug) %></th>
+        <th><%= l(:field_api_url) %></th>
+        <th><%= l(:field_default_model) %></th>
+        <th><%= l(:field_status) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @providers.each do |provider| %>
+        <tr class="<%= 'disabled' unless provider.is_enabled? %>">
+          <td><%= provider.name %></td>
+          <td><code><%= provider.slug %></code></td>
+          <td class="url-cell"><%= provider.api_url %></td>
+          <td><%= provider.default_model %></td>
+          <td class="status-cell">
+            <%= link_to toggle_ai_assistant_provider_path(provider),
+                        method: :put,
+                        class: "icon #{provider.is_enabled? ? 'icon-unlock' : 'icon-lock'}",
+                        title: provider.is_enabled? ? l(:label_disable) : l(:label_enable) do %>
+              <%= provider.is_enabled? ? l(:label_enabled) : l(:label_disabled) %>
+            <% end %>
+          </td>
+          <td class="buttons">
+            <%= link_to l(:button_edit),
+                        edit_ai_assistant_provider_path(provider),
+                        class: 'icon icon-edit' %>
+            <%= link_to l(:button_delete),
+                        ai_assistant_provider_path(provider),
+                        method: :delete,
+                        data: { confirm: l(:text_are_you_sure) },
+                        class: 'icon icon-del' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<% html_title l(:label_ai_providers) %>

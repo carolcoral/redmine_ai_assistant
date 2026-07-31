@@ -1,0 +1,93 @@
+<%# Redmine AI Assistant - 用量统计页面 %>
+
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'ai_assistant/stats', plugin: 'redmine_ai_assistant' %>
+<% end %>
+
+<h2><%= l(:label_ai_usage_stats) %></h2>
+
+<%# ========== 导出控制 ========== %>
+<div class="redmine-ai-assistant-stats-export" style="margin-bottom: 12px;">
+  <%= l(:label_export) %>:
+  <%= link_to 'CSV', { action: 'export', format: 'csv' }, class: 'icon icon-export-csv' %> |
+  <%= link_to 'PDF', { action: 'export', format: 'pdf' }, class: 'icon icon-export-pdf' %>
+</div>
+
+<%# ========== 系统总体统计卡片 ========== %>
+<div class="redmine-ai-assistant-stats-cards">
+  <div class="redmine-ai-assistant-stats-card redmine-ai-assistant-stats-card--total">
+    <div class="redmine-ai-assistant-stats-card__label"><%= l(:label_ai_stats_total) %></div>
+    <div class="redmine-ai-assistant-stats-card__value"><%= number_with_delimiter(@sys_total_calls) %> <span class="redmine-ai-assistant-stats-card__unit"><%= l(:field_ai_calls) %></span></div>
+    <div class="redmine-ai-assistant-stats-card__sub"><%= number_with_delimiter(@sys_total_tokens) %> <span class="redmine-ai-assistant-stats-card__unit">tokens</span></div>
+  </div>
+  <div class="redmine-ai-assistant-stats-card">
+    <div class="redmine-ai-assistant-stats-card__label"><%= l(:label_ai_stats_today) %></div>
+    <div class="redmine-ai-assistant-stats-card__value"><%= number_with_delimiter(@sys_daily_calls) %> <span class="redmine-ai-assistant-stats-card__unit"><%= l(:field_ai_calls) %></span></div>
+    <div class="redmine-ai-assistant-stats-card__sub"><%= number_with_delimiter(@sys_daily_tokens) %> <span class="redmine-ai-assistant-stats-card__unit">tokens</span></div>
+  </div>
+  <div class="redmine-ai-assistant-stats-card">
+    <div class="redmine-ai-assistant-stats-card__label"><%= l(:label_ai_stats_this_week) %></div>
+    <div class="redmine-ai-assistant-stats-card__value"><%= number_with_delimiter(@sys_weekly_calls) %> <span class="redmine-ai-assistant-stats-card__unit"><%= l(:field_ai_calls) %></span></div>
+    <div class="redmine-ai-assistant-stats-card__sub"><%= number_with_delimiter(@sys_weekly_tokens) %> <span class="redmine-ai-assistant-stats-card__unit">tokens</span></div>
+  </div>
+  <div class="redmine-ai-assistant-stats-card">
+    <div class="redmine-ai-assistant-stats-card__label"><%= l(:label_ai_stats_this_month) %></div>
+    <div class="redmine-ai-assistant-stats-card__value"><%= number_with_delimiter(@sys_monthly_calls) %> <span class="redmine-ai-assistant-stats-card__unit"><%= l(:field_ai_calls) %></span></div>
+    <div class="redmine-ai-assistant-stats-card__sub"><%= number_with_delimiter(@sys_monthly_tokens) %> <span class="redmine-ai-assistant-stats-card__unit">tokens</span></div>
+  </div>
+</div>
+
+<p class="redmine-ai-assistant-stats-period-info">
+  <%= l(:label_ai_stats_period_info) %>:
+  <%= l(:label_ai_stats_today) %>: <%= @today.strftime('%Y-%m-%d') %> &nbsp;|&nbsp;
+  <%= l(:label_ai_stats_this_week) %>: <%= @today.beginning_of_week.strftime('%Y-%m-%d') %> ~ <%= @today.strftime('%Y-%m-%d') %> &nbsp;|&nbsp;
+  <%= l(:label_ai_stats_this_month) %>: <%= @today.beginning_of_month.strftime('%Y-%m-%d') %> ~ <%= @today.strftime('%Y-%m-%d') %>
+</p>
+
+<%# ========== 用户维度统计表格 ========== %>
+<h3><%= l(:label_ai_stats_user_detail) %></h3>
+
+<% if @user_stats.any? %>
+  <table class="list redmine-ai-assistant-stats-table">
+    <thead>
+      <tr>
+        <%= sort_header_tag 'user', caption: l(:field_user) %>
+        <%= sort_header_tag 'total_calls', caption: "#{l(:label_ai_stats_total)} #{l(:field_ai_calls)}", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'total_tokens', caption: "#{l(:label_ai_stats_total)} tokens", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'daily_calls', caption: "#{l(:label_ai_stats_today)} #{l(:field_ai_calls)}", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'daily_tokens', caption: "#{l(:label_ai_stats_today)} tokens", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'weekly_calls', caption: "#{l(:label_ai_stats_this_week)} #{l(:field_ai_calls)}", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'weekly_tokens', caption: "#{l(:label_ai_stats_this_week)} tokens", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'monthly_calls', caption: "#{l(:label_ai_stats_this_month)} #{l(:field_ai_calls)}", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'monthly_tokens', caption: "#{l(:label_ai_stats_this_month)} tokens", class: 'redmine-ai-assistant-stats-col--num' %>
+        <%= sort_header_tag 'last_used_at', caption: l(:label_ai_stats_last_used), class: 'redmine-ai-assistant-stats-col--date' %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @user_stats.each do |s| %>
+        <tr>
+          <td>
+            <% if s[:user] %>
+              <%= link_to_user s[:user] %>
+            <% else %>
+              <em><%= l(:label_user_unknown) %></em>
+            <% end %>
+          </td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:total_calls]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:total_tokens]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:daily_calls]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:daily_tokens]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:weekly_calls]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:weekly_tokens]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:monthly_calls]) %></td>
+          <td class="redmine-ai-assistant-stats-col--num"><%= number_with_delimiter(s[:monthly_tokens]) %></td>
+          <td class="redmine-ai-assistant-stats-col--date"><%= s[:last_used_at] ? format_time(s[:last_used_at]) : '-' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<% html_title l(:label_ai_usage_stats) %>

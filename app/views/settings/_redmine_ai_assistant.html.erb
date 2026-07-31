@@ -1,0 +1,141 @@
+<p>
+  <%= content_tag(:label, l(:label_ai_assistant_enabled)) %>
+  <%= hidden_field_tag "settings[enabled]", '0' %>
+  <%= check_box_tag "settings[enabled]", '1',
+        settings['enabled'] == '1' %>
+  <em class="info"><%= l(:text_ai_assistant_enabled_hint) %></em>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:label_default_provider)) %>
+  <%= select_tag "settings[default_provider_id]",
+        options_from_collection_for_select(
+          AiAssistant::AiProvider.enabled.ordered,
+          :id, :name,
+          settings['default_provider_id']
+        ),
+        include_blank: true %>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:label_guard_prompt_enabled)) %>
+  <%= hidden_field_tag "settings[guard_prompt_enabled]", '0' %>
+  <%= check_box_tag "settings[guard_prompt_enabled]", '1',
+        settings['guard_prompt_enabled'] == '1' %>
+  <em class="info"><%= l(:text_guard_prompt_hint) %></em>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:label_system_prompt)) %>
+  <%= text_area_tag "settings[system_prompt]",
+        settings['system_prompt'],
+        rows: 6,
+        style: 'width: 99%;',
+        placeholder: l(:text_system_prompt_placeholder) %>
+  <em class="info"><%= l(:text_system_prompt_hint) %></em>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:label_max_history_messages)) %>
+  <%= number_field_tag "settings[max_history_messages]",
+        settings['max_history_messages'].presence || 20,
+        min: 1, max: 50, step: 1 %>
+  <em class="info"><%= l(:text_max_history_hint) %></em>
+</p>
+
+<p>
+  <%= content_tag(:label, l(:label_report_timezone)) %>
+  <%= select_tag "settings[report_timezone]",
+        time_zone_options_for_select(settings['report_timezone'].presence),
+        include_blank: true %>
+  <em class="info"><%= l(:text_report_timezone_hint) %></em>
+</p>
+
+<fieldset class="box tabular">
+  <legend><%= l(:label_custom_pet) %></legend>
+
+  <p>
+    <%= content_tag(:label, l(:label_custom_pet_image_url)) %>
+    <%= text_field_tag "settings[custom_pet_image_url]",
+          settings['custom_pet_image_url'],
+          id: 'settings_custom_pet_image_url',
+          size: 60,
+          placeholder: 'https://example.com/pet.gif' %>
+    <em class="info"><%= l(:text_custom_pet_image_hint) %></em>
+  </p>
+
+  <p>
+    <%= content_tag(:label, l(:label_custom_pet_image_upload)) %>
+    <%= file_field_tag 'custom_pet_image_upload',
+          accept: 'image/png,image/jpeg,image/gif,image/webp,image/apng,image/svg+xml',
+          id: 'custom_pet_image_upload' %>
+    <em class="info"><%= l(:text_custom_pet_image_upload_hint) %></em>
+  </p>
+
+  <p>
+    <%= content_tag(:label, l(:label_preview)) %>
+    <span class="redmine-ai-assistant-pet-preview" id="redmine-ai-assistant-pet-preview">
+      <% if settings['custom_pet_image_url'].present? %>
+        <img src="<%= settings['custom_pet_image_url'] %>"
+             alt="<%= l(:label_custom_pet) %>"
+             style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;" />
+      <% else %>
+        <span style="font-size: 48px;">🤖</span>
+      <% end %>
+    </span>
+  </p>
+
+  <p>
+    <%= content_tag(:label, l(:label_pet_size)) %>
+    <%= number_field_tag "settings[pet_size]",
+          settings['pet_size'].presence || '60',
+          min: 40, max: 120, step: 5 %>
+    <em class="info"><%= l(:text_pet_size_hint) %></em>
+  </p>
+</fieldset>
+
+<%= javascript_tag do %>
+  (function() {
+    var uploadInput = document.getElementById('custom_pet_image_upload');
+    var urlInput = document.getElementById('settings_custom_pet_image_url');
+    var preview = document.getElementById('redmine-ai-assistant-pet-preview');
+    var maxSize = 1024 * 1024; // 1 MB
+
+    function updatePreview(src) {
+      preview.innerHTML = '<img src="' + src + '" alt="<%= j l(:label_custom_pet) %>" ' +
+        'style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;" />';
+    }
+
+    if (uploadInput) {
+      uploadInput.addEventListener('change', function() {
+        var file = uploadInput.files[0];
+        if (!file) return;
+
+        if (file.size > maxSize) {
+          alert('<%= j l(:error_image_too_large) %>');
+          uploadInput.value = '';
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var dataUrl = e.target.result;
+          urlInput.value = dataUrl;
+          updatePreview(dataUrl);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (urlInput) {
+      urlInput.addEventListener('input', function() {
+        var value = urlInput.value.trim();
+        if (value) {
+          updatePreview(value);
+        } else {
+          preview.innerHTML = '<span style="font-size: 48px;">🤖</span>';
+        }
+      });
+    }
+  })();
+<% end %>

@@ -1,0 +1,135 @@
+<%= error_messages_for 'provider' %>
+
+<div class="box tabular redmine-ai-assistant-provider-form">
+  <p>
+    <%= f.text_field :name, required: true, size: 30, list: 'provider_name_list', label: l(:field_name) %>
+    <datalist id="provider_name_list">
+      <% AiAssistant::AiProvider::PROVIDER_NAME_OPTIONS.each do |label, value| %>
+        <option value="<%= value %>"><%= label %></option>
+      <% end %>
+    </datalist>
+    <em class="info"><%= l(:text_provider_name_hint) %></em>
+  </p>
+
+  <p>
+    <%= f.text_field :slug, required: true, size: 30, label: l(:field_slug) %>
+    <em class="info"><%= l(:text_slug_format) %></em>
+  </p>
+
+  <p>
+    <%= f.text_field :api_url, required: true, size: 60, label: l(:field_api_url) %>
+    <em class="info"><%= l(:text_api_url_hint) %></em>
+  </p>
+
+  <p>
+    <%= f.password_field :api_key, required: true, size: 50, autocomplete: 'off',
+                        value: provider.api_key.presence,
+                        label: l(:field_api_key) %>
+  </p>
+
+  <p>
+    <%= f.text_field :default_model, required: true, size: 30, label: l(:field_default_model) %>
+  </p>
+
+  <p>
+    <%= f.text_area :available_models, rows: 4, cols: 50,
+                    placeholder: "[\"model-a\", \"model-b\"]",
+                    label: l(:field_available_models) %>
+    <button type="button" id="redmine-ai-assistant-fetch-models-btn" class="icon icon-reload">
+      <%= l(:button_fetch_models) %>
+    </button>
+    <span id="redmine-ai-assistant-fetch-models-status"></span>
+    <em class="info"><%= l(:text_available_models_hint) %></em>
+  </p>
+
+  <p>
+    <%= f.text_area :settings, rows: 6, cols: 50,
+                    placeholder: '{"temperature": 0.7, "max_tokens": 4096}',
+                    label: l(:field_settings) %>
+    <em class="info"><%= l(:text_settings_hint) %></em>
+  </p>
+
+  <p>
+    <%= f.number_field :position, min: 0, label: l(:field_position) %>
+  </p>
+
+  <p>
+    <%= f.check_box :is_enabled, label: l(:field_is_enabled) %>
+  </p>
+</div>
+
+<%= javascript_tag do %>
+  document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('redmine-ai-assistant-provider-form');
+    var btn = document.getElementById('redmine-ai-assistant-fetch-models-btn');
+    if (!form || !btn) {
+      console.warn('[AI Assistant] provider form or fetch button not found');
+      return;
+    }
+
+    btn.addEventListener('click', function() {
+      var apiUrlInput = form.querySelector('[name*="[api_url]"]');
+      var apiKeyInput = form.querySelector('[name*="[api_key]"]');
+      var textarea = form.querySelector('[name*="[available_models]"]');
+      var status = document.getElementById('redmine-ai-assistant-fetch-models-status');
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
+      var apiUrl = apiUrlInput ? apiUrlInput.value.trim() : '';
+      var apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+      var csrfToken = csrfMeta ? csrfMeta.content : '';
+
+      if (!apiUrl || !apiKey) {
+        status.innerHTML = '<span class="flash error"><%= j l(:error_api_url_key_required) %></span>';
+        return;
+      }
+
+      if (!textarea) {
+        console.error('[AI Assistant] available_models textarea not found');
+        return;
+      }
+
+      btn.disabled = true;
+      var originalText = btn.textContent;
+      btn.textContent = '<%= j l(:label_fetching) %>';
+      status.innerHTML = '';
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '<%= j fetch_models_ai_assistant_providers_path %>', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.onload = function() {
+        btn.disabled = false;
+        btn.textContent = originalText;
+
+        if (xhr.status === 200) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            var models = data.models || [];
+            textarea.value = JSON.stringify(models, null, 2);
+            status.innerHTML = '<span class="flash notice"><%= j l(:notice_models_fetched) %> (' + models.length + ')</span>';
+          } catch(e) {
+            console.error('[AI Assistant] parse models response error:', e, xhr.responseText);
+            status.innerHTML = '<span class="flash error"><%= j l(:error_invalid_response) %></span>';
+          }
+        } else {
+          try {
+            var errData = JSON.parse(xhr.responseText);
+            status.innerHTML = '<span class="flash error">' + errData.error + '</span>';
+          } catch(e) {
+            status.innerHTML = '<span class="flash error"><%= j l(:error_fetch_models_failed) %></span>';
+          }
+        }
+      };
+
+      xhr.onerror = function() {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        status.innerHTML = '<span class="flash error"><%= j l(:error_network) %></span>';
+      };
+
+      xhr.send(JSON.stringify({ api_url: apiUrl, api_key: apiKey }));
+    });
+  });
+<% end %>

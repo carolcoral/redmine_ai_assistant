@@ -1,0 +1,12 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'ai_assistant/providers', plugin: 'redmine_ai_assistant' %>
+<% end %>
+
+<h2><%= l(:label_ai_provider_new) %></h2>
+
+<%= labelled_form_for @provider,
+                      url: ai_assistant_providers_path,
+                      html: { id: 'redmine-ai-assistant-provider-form', multipart: false } do |f| %>
+  <%= render partial: 'form', locals: { f: f, provider: @provider } %>
+  <%= submit_tag l(:button_create) %>
+<% end %>

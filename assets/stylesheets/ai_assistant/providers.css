@@ -1,0 +1,88 @@
+/* Redmine AI Assistant - Provider management form styles */
+
+/* Fix label/input overlap on provider forms */
+/* Use Redmine native .tabular layout (float-based) instead of flex
+   to avoid conflicts with Redmine's .tabular label float positioning */
+.redmine-ai-assistant-provider-form.box.tabular p,
+#redmine-ai-assistant-provider-form.box.tabular p {
+  padding-block: 6px;
+  min-block-size: 2em;
+}
+
+/* Ensure label stays in its native position */
+.redmine-ai-assistant-provider-form.box.tabular p > label,
+#redmine-ai-assistant-provider-form.box.tabular p > label {
+  float: inline-start;
+  text-align: end;
+  margin-inline-start: -180px;
+  inline-size: 175px;
+  line-height: 24px;
+}
+
+.redmine-ai-assistant-provider-form.box.tabular p > textarea,
+#redmine-ai-assistant-provider-form.box.tabular p > textarea {
+  display: inline-block;
+  vertical-align: top;
+  width: 50%;
+  min-width: 300px;
+  max-width: 600px;
+  resize: vertical;
+}
+
+/* Hint/info text inline after the input */
+.redmine-ai-assistant-provider-form.box.tabular p > .info,
+#redmine-ai-assistant-provider-form.box.tabular p > .info {
+  display: inline;
+  margin-left: 8px;
+  font-size: 0.9em;
+  color: #666;
+  vertical-align: middle;
+}
+
+/* Submit button spacing */
+.redmine-ai-assistant-provider-form + .buttons,
+#redmine-ai-assistant-provider-form + .buttons {
+  margin-top: 16px;
+}
+
+/* Table styles for provider list */
+.redmine-ai-assistant-provider-table th,
+.redmine-ai-assistant-provider-table td {
+  vertical-align: middle;
+}
+
+.redmine-ai-assistant-provider-table .builtin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 0.85em;
+}
+
+.redmine-ai-assistant-provider-table .status-enabled {
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+.redmine-ai-assistant-provider-table .status-disabled {
+  color: #c62828;
+}
+
+/* Auto-fetch models button */
+#redmine-ai-assistant-fetch-models-btn {
+  margin-left: 8px;
+  vertical-align: top;
+}
+
+#redmine-ai-assistant-fetch-models-status {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.9em;
+}
+
+#redmine-ai-assistant-fetch-models-status .flash {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 0;
+}

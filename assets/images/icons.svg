@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- OpenAI-style knot pattern -->
+  <symbol viewBox="0 0 24 24" id="icon--openai">
+    <!-- Outer ring -->
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <!-- Interlocking curved arcs forming knot -->
+    <path d="M7 9.5C7 9.5 8.5 7 12 7s5 2.5 5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M17 14.5c0 0-1.5 2.5-5 2.5s-5-2.5-5-2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M8 17c1.5 1.8 3.5 2 5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M16 7c-1.5-1.8-3.5-2-5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- Bar chart statistics icon (from Redmine built-in icons) -->
+  <symbol viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" id="icon--stats">
+    <path d="M3 13a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -6"/>
+    <path d="M15 9a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -10"/>
+    <path d="M9 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -14"/>
+    <path d="M4 20h14"/>
+  </symbol>
+</svg>

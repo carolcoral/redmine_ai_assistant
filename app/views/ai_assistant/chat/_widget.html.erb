@@ -1,0 +1,117 @@
+<%
+  custom_image = Setting.plugin_redmine_ai_assistant.try(:[], 'custom_pet_image_url').presence
+  pet_size     = (Setting.plugin_redmine_ai_assistant.try(:[], 'pet_size') || '60').to_i
+  avatar_html  = custom_image ? "<img src='#{h(custom_image)}' alt='AI' style='width:100%;height:100%;border-radius:50%;object-fit:cover;'>".html_safe : "🤖"
+%>
+<div id="redmine-ai-assistant-widget"
+     data-chat-csrf-value="<%= form_authenticity_token %>"
+     data-custom-avatar="<%= custom_image %>"
+     data-welcome-text="<%= j l(:text_ai_welcome) %>"
+     data-readonly-text="<%= j l(:text_readonly_disclaimer) %>"
+     data-question-1="<%= j l(:label_quick_question_1) %>"
+     data-question-2="<%= j l(:label_quick_question_2) %>"
+     data-current-user-name="<%= j User.current.name %>"
+     data-current-user-login="<%= j User.current.login %>"
+     data-logout-url="<%= j main_app.signout_path %>"
+     data-my-account-url="<%= j main_app.url_for(controller: '/my', action: 'account', only_path: true) %>"
+     aria-hidden="true">
+  <!-- 悬浮宠物按钮 -->
+  <button id="redmine-ai-assistant-chat-toggle"
+          class="redmine-ai-assistant-chat-toggle<%= ' redmine-ai-assistant-chat-toggle--custom' if custom_image %>"
+          aria-label="<%= l(:label_ai_chat_toggle) %>"
+          title="<%= l(:label_ai_chat_toggle) %>"
+          style="<%= "width:#{pet_size}px;height:#{pet_size}px;" if custom_image %>">
+    <% if custom_image %>
+      <span class="redmine-ai-assistant-pet-image">
+        <img src="<%= custom_image %>"
+             alt="AI"
+             style="width:<%= pet_size %>px;height:<%= pet_size %>px;" />
+      </span>
+      <span class="redmine-ai-assistant-pet-shadow" style="<%= "width:#{pet_size * 0.65}px;" %>"></span>
+    <% else %>
+      <span class="redmine-ai-assistant-pet">🤖</span>
+      <span class="redmine-ai-assistant-pet-shadow"></span>
+    <% end %>
+  </button>
+
+  <!-- 聊天窗口 -->
+  <div id="redmine-ai-assistant-chat-window" class="redmine-ai-assistant-chat-window redmine-ai-assistant-chat-hidden" style="display: none;">
+    <!-- 头部 -->
+    <div class="redmine-ai-assistant-chat-header">
+      <div class="redmine-ai-assistant-chat-header-title">
+        <span class="redmine-ai-assistant-chat-avatar"><%= avatar_html %></span>
+        <span><%= l(:label_ai_assistant) %></span>
+        <span class="redmine-ai-assistant-chat-status" data-redmine-ai-assistant-chat-target="status">🟢</span>
+      </div>
+      <div class="redmine-ai-assistant-chat-header-actions">
+        <button class="redmine-ai-assistant-chat-action-btn"
+                data-action="fullscreen"
+                title="全屏展示">⤢</button>
+        <button class="redmine-ai-assistant-chat-action-btn"
+                data-action="newConversation"
+                title="<%= l(:label_new_conversation) %>">➕</button>
+        <button class="redmine-ai-assistant-chat-action-btn"
+                data-action="toggle"
+                title="<%= l(:label_close) %>">✕</button>
+      </div>
+    </div>
+
+    <!-- 报告快捷操作栏 -->
+    <div class="redmine-ai-assistant-chat-report-bar">
+      <button class="redmine-ai-assistant-chat-report-btn"
+              data-action="pickPeriod"
+              data-report-type="daily">
+        📅 <%= l(:label_daily_report) %>
+      </button>
+      <button class="redmine-ai-assistant-chat-report-btn"
+              data-action="pickPeriod"
+              data-report-type="weekly">
+        📊 <%= l(:label_weekly_report) %>
+      </button>
+      <button class="redmine-ai-assistant-chat-report-btn"
+              data-action="pickPeriod"
+              data-report-type="monthly">
+        📈 <%= l(:label_monthly_report) %>
+      </button>
+    </div>
+
+    <!-- 时间周期选择器（点击报告按钮后显示） -->
+    <div id="redmine-ai-assistant-chat-period-picker"
+         class="redmine-ai-assistant-chat-period-picker"
+         style="display:none;">
+      <span class="redmine-ai-assistant-chat-period-label">选择报告周期：</span>
+      <button class="redmine-ai-assistant-chat-period-option" data-period-offset="0">今日</button>
+      <button class="redmine-ai-assistant-chat-period-option" data-period-offset="-1">昨日</button>
+    </div>
+
+    <!-- 消息列表 -->
+    <div id="redmine-ai-assistant-chat-messages"
+         class="redmine-ai-assistant-chat-messages"
+         data-redmine-ai-assistant-chat-target="messages">
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="redmine-ai-assistant-chat-input-area">
+      <textarea id="redmine-ai-assistant-chat-input"
+                class="redmine-ai-assistant-chat-input"
+                placeholder="<%= l(:label_ai_input_placeholder) %>"
+                rows="1"
+                data-redmine-ai-assistant-chat-target="input"></textarea>
+      <button id="redmine-ai-assistant-chat-send"
+              class="redmine-ai-assistant-chat-send-btn"
+              <%= 'disabled' unless AiAssistant::AiProvider.enabled.exists? %>>
+        <span class="ai-send-icon">➤</span>
+      </button>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="redmine-ai-assistant-chat-statusbar" data-redmine-ai-assistant-chat-target="statusBar" style="display:none;">
+      <span class="ai-typing-indicator">
+        <span class="ai-typing-dot"></span>
+        <span class="ai-typing-dot"></span>
+        <span class="ai-typing-dot"></span>
+      </span>
+      <span><%= l(:label_ai_thinking) %></span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,113 @@
+zh:
+  # ========== 通用 ==========
+  label_ai_assistant: "AI 助手"
+  label_ai_providers: "AI 服务商配置"
+  label_ai_provider_new: "新增服务商"
+  label_ai_provider_edit: "编辑服务商"
+  label_ai_chat_toggle: "切换 AI 对话"
+  label_ai_thinking: "正在思考..."
+  label_ai_input_placeholder: "输入您的问题..."
+  label_new_conversation: "新建对话"
+  label_close: "关闭"
+  label_daily_report: "日报"
+  label_weekly_report: "周报"
+  label_monthly_report: "月报"
+  label_builtin: "内置"
+  label_enabled: "已启用"
+  label_disabled: "已禁用"
+  label_enable: "启用"
+  label_disable: "禁用"
+  label_no_data: "暂无数据"
+
+  label_ai_assistant_enabled: "启用 AI 助手"
+  text_ai_assistant_enabled_hint: "启用后，登录用户将在页面右下角看到 AI 助手悬浮图标。"
+
+  label_default_provider: "默认 AI 服务商"
+  label_guard_prompt_enabled: "启用只读约束提示"
+  label_system_prompt: "自定义系统提示词"
+  label_max_history_messages: "最大历史消息数"
+  label_report_timezone: "报告时区"
+  label_custom_pet: "自定义悬浮图标"
+  label_custom_pet_image_url: "自定义图标 URL"
+  label_custom_pet_image_upload: "上传自定义图标"
+  label_pet_size: "图标尺寸(px)"
+  label_preview: "预览"
+
+  text_custom_pet_image_hint: "支持 PNG/JPG/GIF/APNG/WebP/SVG 等格式。填入图片 URL 或上传本地图片后悬浮按钮将显示自定义图片，留空则使用默认 🤖 图标。GIF/APNG 动图会自动播放。"
+  text_custom_pet_image_upload_hint: "上传本地图片后会自动转为 Data URL 填入上方 URL 字段。建议图标尺寸不超过 120x120，文件大小不超过 1 MB。"
+  text_pet_size_hint: "按钮尺寸，范围 40-120 px，默认 60 px"
+  error_image_too_large: "图片大小不能超过 1 MB"
+
+  label_quick_question_1: "我今天有哪些任务？"
+  label_quick_question_2: "汇总最近的项目活动"
+
+  # ========== 字段 ==========
+  field_name: "名称"
+  field_slug: "标识符"
+  field_provider_type: "服务商类型"
+  field_api_url: "API 地址"
+  field_api_key: "API 密钥"
+  field_default_model: "默认模型"
+  field_available_models: "可用模型列表"
+  field_settings: "扩展配置"
+  field_status: "状态"
+  field_is_enabled: "启用"
+  field_position: "排序"
+
+  # ========== 提示文字 ==========
+  text_slug_format: "仅允许小写字母、数字、连字符和下划线"
+  text_provider_name_hint: "可从下拉列表选择，也支持输入自定义名称（需符合 OpenAI 兼容格式），标识符必须唯一"
+  text_provider_type_hint: "tdp=TDP 平台，custom=其他 OpenAI 兼容接口"
+  text_api_url_hint: "完整 API 地址，如 https://api.openai.com/v1"
+  text_available_models_hint: "JSON 数组格式，如 [\"model-a\", \"model-b\"]"
+  text_settings_hint: "JSON 对象格式的扩展参数"
+  text_guard_prompt_hint: "启用后，涉及业务数据时 AI 将被限制为只读模式，不生成修改/删除指令"
+  text_system_prompt_hint: "自定义系统提示词会在每次 AI 对话和报告生成时注入，用于控制 AI 的行为边界。例如：\"只回答与当前系统相关的问题，其他问题统一回复'请咨询系统管理员'\""
+  text_system_prompt_placeholder: "例如：你只能回答与当前系统相关的问题。如果用户询问其他内容，请统一回复：\"抱歉，我只能回答与当前系统相关的问题，如有其他疑问请联系管理员。\""
+  text_max_history_hint: "对话上下文包含的历史消息数量（1-50）"
+  text_report_timezone_hint: "工作报告的时区（影响报告周期计算）"
+  text_ai_welcome: "你好！我是 AI 助手，可以帮你分析项目数据、回答问题或生成工作报告。"
+  text_readonly_disclaimer: "⚠️ 只读模式：涉及业务数据时，我不会生成修改或删除数据的操作指令。"
+
+  # ========== 错误 ==========
+  error_cannot_delete_builtin_provider: "无法删除内置服务商"
+  error_api_url_key_required: "请先填写 API 地址和 API 密钥"
+  error_unauthorized: "认证失败，请检查 API 密钥"
+  error_models_endpoint_not_found: "服务商不支持模型列表接口（GET /models）"
+  error_rate_limited: "请求过于频繁，请稍后再试"
+  error_connection_timeout: "连接超时，请检查 API 地址是否可访问"
+  error_connection_refused: "连接被拒绝，请检查 API 地址"
+  error_network: "网络错误"
+  error_invalid_response: "服务商返回了无法解析的响应"
+  error_no_models_found: "未获取到可用模型"
+  error_fetch_models_failed: "获取模型列表失败"
+
+  # ========== 按钮 ==========
+  button_fetch_models: "自动获取"
+  label_fetching: "正在获取..."
+
+  # ========== 通知 ==========
+  notice_models_fetched: "模型列表获取成功"
+
+  # ========== 权限 ==========
+  permission_manage_ai_providers: "管理 AI 服务商"
+  permission_use_ai_chat: "使用 AI 对话"
+  permission_generate_ai_reports: "生成 AI 报告"
+
+  # ========== 项目模块 ==========
+  project_module_ai_assistant: "AI 助手"
+
+  # ========== 用量统计 ==========
+  label_ai_usage_stats: "AI 用量统计"
+  label_ai_stats_total: "累计"
+  label_ai_stats_today: "今日"
+  label_ai_stats_this_week: "本周"
+  label_ai_stats_this_month: "本月"
+  label_ai_stats_user_detail: "用户用量明细"
+  label_ai_stats_last_used: "最近使用"
+  label_ai_stats_period_info: "统计周期"
+  label_user_unknown: "未知用户"
+  field_ai_calls: "调用"
+  field_user: "用户"
+  label_export: "导出"
+  permission_view_ai_stats: "查看 AI 用量统计"
