@@ -1,0 +1,9 @@
+# 在分支详情页提供「推送到 GitHub」按钮
+# 点击后触发 web_trigger_push_github 流水线，将代码同步到 GitHub 仓库
+branch:
+  - buttons:
+      - name: 推送到 GitHub
+        description: 将代码推送到 carolcoral/redmine_ai_assistant
+        event: web_trigger_push_github
+        permissions:
+          roles: [owner]
