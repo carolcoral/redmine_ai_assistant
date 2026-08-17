@@ -59,6 +59,8 @@ zh:
   text_provider_name_hint: "可从下拉列表选择，也支持输入自定义名称（需符合 OpenAI 兼容格式），标识符必须唯一"
   text_provider_type_hint: "tdp=TDP 平台，custom=其他 OpenAI 兼容接口"
   text_api_url_hint: "完整 API 地址，如 https://api.openai.com/v1"
+  text_api_key_keep_hint: "API 密钥已加密存储，出于安全原因编辑时不回显；留空则保持原值不变。"
+  placeholder_api_key_keep: "留空则保持原密钥"
   text_available_models_hint: "JSON 数组格式，如 [\"model-a\", \"model-b\"]"
   text_settings_hint: "JSON 对象格式的扩展参数"
   text_guard_prompt_hint: "启用后，涉及业务数据时 AI 将被限制为只读模式，不生成修改/删除指令"
@@ -81,6 +83,8 @@ zh:
   error_invalid_response: "服务商返回了无法解析的响应"
   error_no_models_found: "未获取到可用模型"
   error_fetch_models_failed: "获取模型列表失败"
+  error_ai_not_configured_for_user: "AI 服务暂未就绪，请联系管理员在【管理 → AI 服务商】中配置可用的服务商。"
+  hint_ai_send_btn_disabled: "AI 服务未配置，请联系管理员"
 
   # ========== 按钮 ==========
   button_fetch_models: "自动获取"

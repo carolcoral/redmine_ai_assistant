@@ -18,7 +18,7 @@ Redmine::Plugin.register :redmine_ai_assistant do
   description 'Redmine 统一 AI 能力核心枢纽 -- AI-powered intelligent ' \
               'assistant with chat, report generation, mixin API for other plugins, ' \
               'and multi-provider provider support.'
-  version '1.1.0'
+  version '1.1.1'
   url 'https://cnb.cool/xindu.site/redmine'
   author_url 'https://xindu.site'
 

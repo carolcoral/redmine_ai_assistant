@@ -38,6 +38,12 @@
       this.csrfToken = container.dataset.chatCsrfValue ||
         document.querySelector('meta[name="csrf-token"]')?.content || "";
       this.customAvatar = container.dataset.customAvatar || "";
+      // 优先从 <template> 元素读取当前用户头像 HTML（避免 data 属性中的 HTML 转义复杂度）
+      const userAvatarTpl = container.querySelector("#redmine-ai-assistant-user-avatar-template");
+      this.currentUserAvatar = (userAvatarTpl && userAvatarTpl.innerHTML.trim()) || container.dataset.currentUserAvatar || "";
+      // AI 是否就绪：仅服务端预检通过才会为 true，未配置时给用户友好兜底
+      this.aiReady = container.dataset.aiReady !== "false" && container.dataset.aiReady !== "0";
+      this.aiDisabledHint = container.dataset.aiDisabledHint || "";
       this.welcomeText = container.dataset.welcomeText || "Hello! I'm your AI assistant.";
       this.readonlyText = container.dataset.readonlyText || "";
       this.question1 = container.dataset.question1 || "";
@@ -74,7 +80,8 @@
       try {
         const data = {
           conversationId: this.conversationId,
-          messages: this.messagesData.slice(-MAX_STORED_MESSAGES),
+          // 错误消息（isError）不持久化，避免旧的配置错误残留到下次会话
+          messages: this.messagesData.filter((m) => !m.isError).slice(-MAX_STORED_MESSAGES),
           savedAt: Date.now()
         };
         localStorage.setItem(this.storageKey(), JSON.stringify(data));
@@ -96,7 +103,9 @@
           this.conversationId = data.conversationId;
         }
 
-        this.messagesData = data.messages;
+        // 兼容旧版保存的数据：恢复时丢弃错误消息（isError），避免残留旧错误提示
+        this.messagesData = (data.messages || []).filter((m) => !m.isError);
+        if (this.messagesData.length === 0) { this.showWelcomeMessage(); return; }
         this.rerenderAllMessages();
       } catch (e) {
         this.showWelcomeMessage();
@@ -216,6 +225,13 @@
       const { input } = this.elements;
       const message = input.value.trim();
       if (!message || this.isProcessing) return;
+
+      // 前端兜底：AI 未就绪时不再发起请求，也不再把用户消息塞进气泡
+      if (this.aiReady === false || this.aiReady === "false") {
+        const hint = this.aiDisabledHint || "AI 服务未配置，请联系管理员";
+        this.appendMessage("assistant", "⚠️ " + hint, true);
+        return;
+      }
 
       input.value = "";
       input.style.height = "auto";
@@ -400,9 +416,18 @@
       div.className = "redmine-ai-assistant-chat-message redmine-ai-assistant-chat-" + msg.role + (msg.isError ? " redmine-ai-assistant-chat-error" : "");
       div.dataset.msgIndex = index;
 
-      const avatar = msg.role === "user" ? "👤" : this.avatarHtml();
+      const avatar = msg.role === "user" ? this.userAvatarHtml() : this.avatarHtml();
       const label  = msg.role === "user" ? "You" : "AI";
-      const rendered = msg.isError ? this.escapeHtml(msg.content) : this.renderMarkdown(msg.content);
+      // 用户消息走纯文本渲染（不做 HTML 标签透传），避免 <姓名/工号> 这类自定义语法
+      // 被当作未知 HTML 标签而被浏览器静默吞掉。
+      let rendered;
+      if (msg.isError) {
+        rendered = this.escapeHtml(msg.content);
+      } else if (msg.role === "user") {
+        rendered = "<p>" + this.escapeHtml(msg.content).replace(/\n/g, "<br>") + "</p>";
+      } else {
+        rendered = this.renderMarkdown(msg.content);
+      }
 
       // 为 AI 助手消息添加复制按钮
       let copyBtnHtml = "";
@@ -688,6 +713,15 @@
       fallback = fallback || "🤖";
       if (this.customAvatar) {
         return '<img src="' + this.escapeHtml(this.customAvatar) + '" alt="AI">';
+      }
+      return fallback;
+    }
+
+    // 当前登录用户的 Redmine 头像 HTML（服务端渲染后传入），用于用户消息气泡
+    userAvatarHtml(fallback) {
+      fallback = fallback || "👤";
+      if (this.currentUserAvatar) {
+        return this.currentUserAvatar;
       }
       return fallback;
     }

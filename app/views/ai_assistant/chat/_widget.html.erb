@@ -2,6 +2,23 @@
   custom_image = Setting.plugin_redmine_ai_assistant.try(:[], 'custom_pet_image_url').presence
   pet_size     = (Setting.plugin_redmine_ai_assistant.try(:[], 'pet_size') || '60').to_i
   avatar_html  = custom_image ? "<img src='#{h(custom_image)}' alt='AI' style='width:100%;height:100%;border-radius:50%;object-fit:cover;'>".html_safe : "🤖"
+  # 当前登录用户的 Redmine 头像（Gravatar 或首字母圆形），用于聊天消息中的用户气泡
+  user_avatar_html = ''
+  if respond_to?(:avatar) && User.current && !User.current.is_a?(AnonymousUser)
+    begin
+      # 转为普通 String 以便在下方用 CGI::escapeHTML 安全转义；
+      # image_tag 返回的是 SafeBuffer，`ERB::Util.h` 对其无效会导致属性内 `"` 未转义，
+      # 从而破坏外层 HTML 结构。
+      user_avatar_html = avatar(User.current, size: 32).to_str
+    rescue StandardError
+      user_avatar_html = ''
+    end
+  end
+  # AI 是否就绪：有启用的服务商且其 API key 已填写（API key 是管理员集中配置的）
+  # 注意：视图模板在 AiAssistant::ChatController 视图上下文渲染，常量查找从 AiAssistant 模块开始，
+  # 必须用完整命名空间 AiAssistant::AiProvider，否则报 NameError。
+  ai_provider_scope = AiAssistant::AiProvider.enabled
+  ai_ready = ai_provider_scope.exists? && ai_provider_scope.where.not(api_key: [nil, '']).exists?
 %>
 <div id="redmine-ai-assistant-widget"
      data-chat-csrf-value="<%= form_authenticity_token %>"
@@ -12,9 +29,14 @@
      data-question-2="<%= j l(:label_quick_question_2) %>"
      data-current-user-name="<%= j User.current.name %>"
      data-current-user-login="<%= j User.current.login %>"
+     data-current-user-avatar="<%= h user_avatar_html %>"
+     data-ai-ready="<%= ai_ready %>"
+     data-ai-disabled-hint="<%= j l(:hint_ai_send_btn_disabled) %>"
      data-logout-url="<%= j main_app.signout_path %>"
      data-my-account-url="<%= j main_app.url_for(controller: '/my', action: 'account', only_path: true) %>"
      aria-hidden="true">
+  <!-- 当前用户头像模板：JS 通过 querySelector 读取，避免 data 属性中 HTML 转义复杂度 -->
+  <template id="redmine-ai-assistant-user-avatar-template"><%= user_avatar_html.html_safe %></template>
   <!-- 悬浮宠物按钮 -->
   <button id="redmine-ai-assistant-chat-toggle"
           class="redmine-ai-assistant-chat-toggle<%= ' redmine-ai-assistant-chat-toggle--custom' if custom_image %>"
@@ -99,7 +121,8 @@
                 data-redmine-ai-assistant-chat-target="input"></textarea>
       <button id="redmine-ai-assistant-chat-send"
               class="redmine-ai-assistant-chat-send-btn"
-              <%= 'disabled' unless AiAssistant::AiProvider.enabled.exists? %>>
+              <%= 'disabled' unless ai_ready %>
+              <%= "title=\"#{j l(:hint_ai_send_btn_disabled)}\"" unless ai_ready %>>
         <span class="ai-send-icon">➤</span>
       </button>
     </div>

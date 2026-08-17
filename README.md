@@ -1,55 +1,102 @@
-# Redmine AI Assistant
+<div align="center">
+
+# 🤖 Redmine AI Assistant
 
 **Unified AI Capability Hub for Redmine** — provides a standardized AI interface for the entire system, allowing any Redmine plugin to integrate AI features with zero configuration.
 
+![Version](https://img.shields.io/badge/Version-1.1.1-2ea44f)
+![Redmine](https://img.shields.io/badge/Redmine-%3E%3D%206.1.0-4a90d9)
+![Ruby](https://img.shields.io/badge/Ruby-%3E%3D%203.2.0-e4405f)
+![Plugin](https://img.shields.io/badge/Plugin-OpenAI%20Compatible-8c8c8c)
+
 > :cn: [中文文档](README.zh.md)
 
-## Features
+</div>
 
-### For End Users
-- **Floating Chat Widget** — Draggable AI chat bubble in the bottom-right corner with Markdown rendering, syntax highlighting, and table support
-- **Work Report Generation** — One-click daily / weekly / monthly reports based on real activity data (time entries, issue changes, comments, wiki updates)
-- **Smart Data Injection** — Automatically detects task/report queries and injects real Redmine issue data as context
-- **Conversation History** — Persistent chat history with configurable context window
-- **Quick-Action Templates** — Common queries available as one-click buttons
+---
 
-### For Admins
-- **Multi-Provider Management** — Configure multiple AI backends (OpenAI, DeepSeek, Ollama, vLLM, any OpenAI-compatible API)
-- **Read-Only Guard Prompt** — Automatically restricts AI to analysis-only mode when business data is involved
-- **Custom System Prompts** — Define organization-wide AI behavior rules
-- **Usage Statistics** — Token consumption and call frequency per user, with CSV/PDF export
-- **Encrypted API Keys** — AES-256-CBC encryption at rest for provider credentials
+## 📑 Table of Contents
 
-### For Developers (as AI Hub)
-- **Module-Level API** — One-line calls: `AiAssistant.chat("Hello")`, `AiAssistant.chat_stream(...)`, `AiAssistant.ready?`
-- **Mixin Module** — `include AiAssistant::Mixins::AiCapable` gives any class `ai_chat` / `ai_chat_stream` methods
-- **Deep Encapsulation** — Provider selection, authentication, error handling, and linkification are hidden from callers
-- **Streaming Support** — SSE-based `chat_stream` with callback blocks
-- **Backward Compatible** — The original `AiClient` class is preserved as a thin wrapper
+- [✨ Features](#-features)
+- [📌 Requirements](#-requirements)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [💡 Usage](#-usage)
+- [🏗️ Architecture](#️-architecture)
+- [🔌 API Reference](#-api-reference)
+- [🗄️ Database Schema](#️-database-schema)
+- [🛠️ Development](#️-development)
+- [📄 License](#-license)
 
-## Requirements
+---
 
-- Redmine >= 6.1.0
-- Ruby >= 3.2.0
-- At least one AI service provider (OpenAI-compatible API)
+## ✨ Features
 
-## Installation
+### 👤 For End Users
 
-1. Copy the plugin directory into `plugins/redmine_ai_assistant`
+| Capability | Description |
+|---|---|
+| 💬 **Floating Chat Widget** | Draggable AI chat bubble in the bottom-right corner with Markdown rendering, syntax highlighting, and table support |
+| 📊 **Work Report Generation** | One-click daily / weekly / monthly reports based on real activity data (time entries, issue changes, comments, wiki updates) |
+| 🧠 **Smart Data Injection** | Automatically detects task / report queries and injects real Redmine issue data as context |
+| 🕘 **Conversation History** | Persistent chat history with a configurable context window |
+| ⚡ **Quick-Action Templates** | Common queries available as one-click buttons |
 
-2. Run database migrations:
+### 🛡️ For Admins
 
-```bash
-bundle exec rake redmine:plugins:migrate RAILS_ENV=production
-```
+| Capability | Description |
+|---|---|
+| 🏢 **Multi-Provider Management** | Configure multiple AI backends (OpenAI, DeepSeek, Ollama, vLLM, or any OpenAI-compatible API) |
+| 🔒 **Read-Only Guard Prompt** | Automatically restricts AI to analysis-only mode when business data is involved |
+| 🧾 **Custom System Prompts** | Define organization-wide AI behavior rules |
+| 📈 **Usage Statistics** | Token consumption and call frequency per user, with CSV / PDF export |
+| 🔐 **Encrypted API Keys** | AES-256-CBC encryption at rest for provider credentials |
 
-3. Restart Redmine
+### 🧩 For Developers (as AI Hub)
 
-4. Go to **Administration → Plugins → Redmine AI Assistant → Configure** to enable
+| Capability | Description |
+|---|---|
+| ⚙️ **Module-Level API** | One-line calls: `AiAssistant.chat("Hello")` |
+| 🔌 **Mixin Module** | `include AiAssistant::Mixins::AiCapable` gives any class `ai_chat` / `ai_chat_stream` methods |
+| 🎯 **Deep Encapsulation** | Provider selection, authentication, error handling, and linkification are hidden from callers |
+| 🌊 **Streaming Support** | SSE-based `chat_stream` with callback blocks |
+| 🧳 **Backward Compatible** | The original `AiClient` class is preserved as a thin wrapper |
 
-## Configuration
+---
 
-### Plugin Settings
+## 📌 Requirements
+
+| Component | Requirement |
+|---|---|
+| Redmine | `>= 6.1.0` |
+| Ruby | `>= 3.2.0` |
+| AI Service | At least one OpenAI-compatible provider |
+
+---
+
+## 🚀 Quick Start
+
+1. **Copy the plugin directory**
+
+   Place the plugin into `plugins/redmine_ai_assistant`
+
+2. **Run database migrations**
+
+   ```bash
+   bundle exec rake redmine:plugins:migrate RAILS_ENV=production
+   ```
+
+3. **Restart Redmine**
+
+4. **Enable the plugin**
+
+   Go to **Administration → Plugins → Redmine AI Assistant → Configure**
+
+---
+
+## ⚙️ Configuration
+
+### 🛠️ Plugin Settings
 
 Go to **Administration → Plugins → Redmine AI Assistant → Configure**:
 
@@ -61,18 +108,20 @@ Go to **Administration → Plugins → Redmine AI Assistant → Configure**:
 | Custom System Prompt | (Empty) | Custom prompt injected before every AI call |
 | Max History Messages | 20 | Previous messages to keep in conversation context (1–50) |
 | Report Timezone | (Empty) | Timezone for report period calculation (e.g. `Asia/Shanghai`) |
-| Custom Pet Image URL | (Empty) | Custom floating icon URL (PNG/JPG/GIF/APNG/WebP/SVG) |
+| Custom Pet Image URL | (Empty) | Custom floating icon URL (PNG / JPG / GIF / APNG / WebP / SVG) |
 | Icon Size | 60 | Floating button size in pixels (40–120) |
 
-### AI Service Providers
+### 🏢 AI Service Providers
 
 Go to **Administration → AI Service Providers** to configure AI backends.
 
 **Provider Types**:
+
 - `tdp` — TDP platform integrated provider
 - `custom` — Any OpenAI-compatible API (OpenAI, DeepSeek, Ollama, vLLM, Anthropic via proxy, etc.)
 
 **Required Fields**:
+
 | Field | Description |
 |---|---|
 | Name | Display name |
@@ -83,60 +132,81 @@ Go to **Administration → AI Service Providers** to configure AI backends.
 | Default Model | Model name (e.g. `gpt-4o-mini`) |
 
 **Optional Fields**:
+
 | Field | Description |
 |---|---|
 | Available Models | JSON array — use the **Auto Fetch** button to retrieve from `/models` endpoint |
 | Extra Settings | JSON object for provider-specific parameters (e.g. `top_p`, `frequency_penalty`) |
 | Position | Sort order for provider list |
 
-### Permissions
+### 🔑 Permissions
 
 | Permission | Access | Description |
 |---|---|---|
-| Manage AI Providers | Admin only | CRUD and enable/disable AI providers |
+| Manage AI Providers | Admin only | CRUD and enable / disable AI providers |
 | Use AI Chat | Logged-in users | Access the floating chat widget |
 | Generate AI Reports | Logged-in users | Generate work reports |
 | View AI Stats | Admin only | View usage statistics dashboard |
 
-## Usage
+---
 
-### AI Chat
+## 💡 Usage
+
+### 💬 AI Chat
 
 1. Click the floating icon (bottom-right corner) to open the chat panel
 2. Ask questions about your projects, tasks, or time entries
 3. The assistant automatically injects real Redmine data when you use task-related keywords
 4. Use quick-action buttons for one-click summaries
 
-**Trigger keywords** (at least 2 needed to trigger data injection): task, issue, status, priority, progress, version, due date, overdue, 任务, 项目, etc.
+> **Trigger keywords** (at least 2 needed to trigger data injection): task, issue, status, priority, progress, version, due date, overdue, 任务, 项目, etc.
 
 You can also reference issues directly by ID: `#123`, `#456`.
 
-### Work Reports
+### 👥 Statistics for a Specific Assignee
+
+Administrators can use the `<name/employee ID>` syntax to generate statistics for any user's tasks:
+
+| Example | Description |
+|---|---|
+| `统计<邹悦>今年内的所有任务并生成报告` | All tasks assigned to 邹悦 this year |
+| `统计<zhangwei>本月指派给他的任务` | Tasks assigned to zhangwei this month |
+| `统计<李娜>近30天的任务汇总` | Task summary for 李娜 over the last 30 days |
+
+> **Permission note**: Regular users can only generate statistics for themselves; when they try to query another user, the assistant will politely decline and suggest contacting an administrator.
+
+Statistics cover tasks in **all statuses** (open and closed) and include a summary with distributions by status, project, tracker, plus a monthly creation trend.
+
+### 📊 Work Reports
 
 Reports are generated via API endpoints or from the chat widget. The generator collects:
 
-- **Time Entries** — Hours logged with project, issue, and activity details
-- **Issues Assigned** — New tasks assigned during the report period
-- **Issue Change History** — Full timeline of status/priority/assignee changes
-- **Issues Closed** — Tasks completed during the period
-- **Status Summary** — Distribution of open issues by status
-- **Overdue Issues** — Tasks past due date but not closed
-- **Comments** — Notes on issues, wiki pages, documents
-- **Wiki Updates** — Pages edited during the period
+| Data Source | Description |
+|---|---|
+| ⏱️ Time Entries | Hours logged with project, issue, and activity details |
+| 📋 Issues Assigned | New tasks assigned during the report period |
+| 🔄 Issue Change History | Full timeline of status / priority / assignee changes |
+| ✅ Issues Closed | Tasks completed during the period |
+| 📌 Status Summary | Distribution of open issues by status |
+| ⚠️ Overdue Issues | Tasks past due date but not closed |
+| 💬 Comments | Notes on issues, wiki pages, documents |
+| 📝 Wiki Updates | Pages edited during the period |
 
 Reports are generated in Markdown with structured sections, summarized by AI.
 
-## Architecture
+---
+
+## 🏗️ Architecture
 
 ```
 redmine_ai_assistant/
-├── init.rb                              # Plugin registration, permissions
+├── init.rb                              # Plugin registration, permissions, settings
 ├── config/
 │   ├── routes.rb                        # API routes
 │   └── locales/                         # zh.yml, en.yml
 ├── app/
 │   ├── controllers/ai_assistant/
-│   │   ├── chat_controller.rb           # Chat API (send/history/clear)
+│   │   ├── chat_controller.rb           # Chat API
 │   │   ├── providers_controller.rb      # Provider CRUD (admin)
 │   │   ├── reports_controller.rb        # Report generation API
 │   │   └── stats_controller.rb          # Usage stats dashboard (admin)
@@ -146,30 +216,30 @@ redmine_ai_assistant/
 │   └── views/ai_assistant/              # ERB templates
 ├── assets/
 │   ├── javascripts/ai_assistant/
-│   │   └── chat_widget_controller.js    # Vanilla JS chat widget (~770 lines)
+│   │   └── chat_widget_controller.js    # Vanilla JS chat widget
 │   └── stylesheets/ai_assistant/
 │       ├── chat_widget.css              # Chat widget styles
 │       ├── providers.css                # Provider form styles
 │       └── stats.css                    # Stats dashboard styles
 ├── lib/ai_assistant/                    # ← AI Capability Hub
-│   ├── client.rb                        # Core AI client (HTTP, SSL, parsing, streaming)
+│   ├── client.rb                        # Core AI client (HTTP / SSL / parsing / streaming)
 │   ├── ai_client.rb                     # Backward-compatible wrapper
 │   ├── guard_prompt.rb                  # Read-only guard prompt injection
 │   ├── hooks.rb                         # Redmine view hooks
-│   ├── report_generator.rb              # Work report engine (~570 lines)
+│   ├── report_generator.rb              # Work report engine
 │   └── mixins/
 │       └── ai_capable.rb                # Mixin module for other plugins
 └── db/migrate/                          # Schema migrations
 ```
 
-### AI Capability Hub — Public API
+### ⚙️ AI Capability Hub — Public API
 
 ```ruby
 # === Module-Level API (recommended) ===
 
 # Check readiness
-AiAssistant.enabled?          # Plugin enabled in settings?
-AiAssistant.ready?             # Enabled + has an active provider?
+AiAssistant.enabled?            # Plugin enabled in settings?
+AiAssistant.ready?              # Enabled + has an active provider?
 AiAssistant.available_providers # List of enabled AiProvider records
 AiAssistant.default_provider    # The default provider instance
 
@@ -179,10 +249,10 @@ result = AiAssistant.chat("Analyze issue #123")
 
 # With options
 result = AiAssistant.chat("Hello",
-  provider:    "openai",       # provider slug or ID
+  provider:    "openai",        # provider slug or ID
   model:       "gpt-4",
-  temperature: 0.3,
-  max_tokens:  2048,
+  temperature: 0.3,             # sampling temperature (default: 0.7)
+  max_tokens:  2048,            # max tokens (default: 4096)
   system:      "You are a code reviewer."  # system prompt
 )
 
@@ -208,23 +278,25 @@ if result[:error]
 else
   puts result[:content]
 end
+```
 
-# === Client Instance API (advanced) ===
+### 🧰 Client Instance API (Advanced)
 
+```ruby
 client = AiAssistant.client(
   provider:    my_provider_instance,
   model:       "gpt-4",
-  temperature: 0.5,           # (default: 0.7)
-  max_tokens:  4096,          # (default: 4096)
-  timeout:     120,           # read timeout in seconds (default: 120)
-  linkify:     true           # auto-link #ID to issue URLs (default: true)
+  temperature: 0.5,             # (default: 0.7)
+  max_tokens:  4096,            # (default: 4096)
+  timeout:     120,             # read timeout in seconds (default: 120)
+  linkify:     true             # auto-link #ID to issue URLs (default: true)
 )
 
-result   = client.chat(messages)
+result = client.chat(messages)
 client.chat_stream(messages) { |chunk| ... }
 ```
 
-### Mixin for Other Plugins
+### 🔌 Mixin for Other Plugins
 
 ```ruby
 # In your plugin:
@@ -254,13 +326,15 @@ class MyFeatureController < ApplicationController
 end
 ```
 
-**Mixin provides**: `ai_chat`, `ai_chat_messages`, `ai_chat_stream`, `ai_ready?`
+> **Mixin provides**: `ai_chat`, `ai_chat_messages`, `ai_chat_stream`, `ai_ready?`
 
-## API Reference
+---
 
-All endpoints require authentication (session or API key).
+## 🔌 API Reference
 
-### Chat
+> All endpoints require authentication (session or API key).
+
+### 💬 Chat
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -268,7 +342,8 @@ All endpoints require authentication (session or API key).
 | GET | `/ai_assistant/chat/history` | Get conversation history |
 | GET | `/ai_assistant/chat/clear` | Clear a conversation |
 
-**Send Message** — request:
+**Send Message — request:**
+
 ```json
 {
   "message": "What are my tasks today?",
@@ -276,7 +351,8 @@ All endpoints require authentication (session or API key).
 }
 ```
 
-**Send Message** — response:
+**Send Message — response:**
+
 ```json
 {
   "conversation_id": "abc-123",
@@ -289,7 +365,7 @@ All endpoints require authentication (session or API key).
 }
 ```
 
-### Reports
+### 📊 Reports
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -298,7 +374,8 @@ All endpoints require authentication (session or API key).
 | GET | `/ai_assistant/reports/monthly` | This month's monthly report |
 | POST | `/ai_assistant/reports/generate` | Custom report |
 
-**Generate Report** — request:
+**Generate Report — request:**
+
 ```json
 {
   "report_type": "weekly",
@@ -307,16 +384,18 @@ All endpoints require authentication (session or API key).
 }
 ```
 
-`period_offset`: `0` = current period, `-1` = previous period.
+> `period_offset`: `0` = current period, `-1` = previous period (yesterday / last week / last month).
 
-### Admin Stats
+### 📈 Admin Stats
 
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/ai_assistant/stats` | Usage statistics dashboard (HTML) |
 | GET | `/ai_assistant/stats/export` | Export stats as CSV or PDF |
 
-## Database Schema
+---
+
+## 🗄️ Database Schema
 
 ### `ai_providers`
 
@@ -348,16 +427,18 @@ All endpoints require authentication (session or API key).
 | `report_type` | string | `daily`, `weekly`, `monthly` |
 | `ai_provider` | string | Provider name snapshot |
 
-## Development
+---
 
-### Adding a New AI Provider
+## 🛠️ Development
+
+### 🏢 Adding a New AI Provider
 
 1. Go to **Administration → AI Service Providers → New Provider**
 2. Fill in the API URL and key for any OpenAI-compatible service
 3. Optionally use **Auto Fetch** to retrieve available model names
 4. Set as default in Plugin Settings if desired
 
-### Extending Report Data
+### 📊 Extending Report Data
 
 The `ReportGenerator#collect_data` method returns a hash. To add new data sources:
 
@@ -366,7 +447,7 @@ The `ReportGenerator#collect_data` method returns a hash. To add new data source
 3. Add the corresponding section in `build_user_prompt`
 4. Update `build_system_prompt` with formatting guidelines
 
-### Using the AI Hub from Other Plugins
+### 🧩 Using the AI Hub from Other Plugins
 
 ```ruby
 # Zero-config: uses the system's default provider
@@ -375,18 +456,21 @@ result = AiAssistant.chat("Summarize project status")
 # With explicit provider selection
 result = AiAssistant.chat("Hello", provider: "deepseek")
 
-# With Mixin (preferred for controllers/models)
+# With Mixin (preferred for controllers / models)
 include AiAssistant::Mixins::AiCapable
 result = ai_chat("Hello")
 ```
 
-### Customizing System Prompts
+### 🧾 Customizing System Prompts
 
 Use the **Custom System Prompt** setting in plugin configuration. It is prepended to every AI call, allowing you to:
+
 - Restrict AI to specific domains
 - Define output format conventions
 - Enforce company policies
 
-## License
+---
+
+## 📄 License
 
 This project is part of the Redmine ecosystem. See the main project license for details.

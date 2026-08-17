@@ -31,7 +31,10 @@ module AiAssistant
     def edit; end
 
     def update
-      if @provider.update(provider_params)
+      update_params = provider_params
+      # 编辑时 API Key 留空则保留原值，避免空字符串覆盖已加密的密钥
+      update_params = update_params.except(:api_key) if update_params[:api_key].blank?
+      if @provider.update(update_params)
         flash[:notice] = l(:notice_successful_update)
         redirect_to action: :index
       else
@@ -52,9 +55,16 @@ module AiAssistant
 
     # POST /ai_providers/fetch_models
     # 根据前端传来的 api_url / api_key 获取可用模型列表
+    # 编辑场景下 api_key 可留空，通过 provider_id 回退到已保存的密钥
     def fetch_models
       api_url  = params[:api_url].to_s.strip
       api_key  = params[:api_key].to_s.strip
+      provider_id = params[:provider_id].to_i
+
+      if api_key.blank? && provider_id > 0
+        saved_provider = AiProvider.find_by(id: provider_id)
+        api_key = saved_provider&.api_key.to_s
+      end
 
       if api_url.blank? || api_key.blank?
         render json: { error: l(:error_api_url_key_required) }, status: :bad_request

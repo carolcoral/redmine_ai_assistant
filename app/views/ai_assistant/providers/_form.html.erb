@@ -22,9 +22,15 @@
   </p>
 
   <p>
-    <%= f.password_field :api_key, required: true, size: 50, autocomplete: 'off',
-                        value: provider.api_key.presence,
+    <%= f.password_field :api_key,
+                        required: provider.new_record?,
+                        size: 50, autocomplete: 'off',
+                        value: nil,
+                        placeholder: (provider.new_record? ? nil : l(:placeholder_api_key_keep)),
                         label: l(:field_api_key) %>
+    <% if provider.persisted? %>
+      <em class="info"><%= l(:text_api_key_keep_hint) %></em>
+    <% end %>
   </p>
 
   <p>
@@ -73,12 +79,14 @@
       var textarea = form.querySelector('[name*="[available_models]"]');
       var status = document.getElementById('redmine-ai-assistant-fetch-models-status');
       var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var providerId = <%= provider.persisted? ? provider.id : 'null' %>;
 
       var apiUrl = apiUrlInput ? apiUrlInput.value.trim() : '';
       var apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
       var csrfToken = csrfMeta ? csrfMeta.content : '';
 
-      if (!apiUrl || !apiKey) {
+      // 编辑场景：api_key 留空时回退到已保存的密钥（服务端按 provider_id 查找）
+      if (!apiUrl || (!apiKey && !providerId)) {
         status.innerHTML = '<span class="flash error"><%= j l(:error_api_url_key_required) %></span>';
         return;
       }
@@ -129,7 +137,7 @@
         status.innerHTML = '<span class="flash error"><%= j l(:error_network) %></span>';
       };
 
-      xhr.send(JSON.stringify({ api_url: apiUrl, api_key: apiKey }));
+      xhr.send(JSON.stringify({ api_url: apiUrl, api_key: apiKey, provider_id: providerId }));
     });
   });
 <% end %>

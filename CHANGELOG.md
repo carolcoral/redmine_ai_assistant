@@ -1,85 +1,57 @@
 # Changelog
 
-All notable changes to the Redmine AI Assistant project will be documented in this file.
+本文件记录 **Redmine AI Assistant** 的版本变更历史。
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+- 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)
+- 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)
+- 版本分类：`Added` 新增 / `Changed` 变更 / `Fixed` 修复 / `Removed` 移除
 
----
+## [1.1.1] - 2026-08-17
 
-## [1.1.0] — 2026-07-31
+### Added
+- **支持按指定指派人统计任务**：`统计<姓名/工号>...` 语法（兼容全角 `＜＞`）
+  - 管理员可统计任意用户的任务；普通用户仅可统计本人
+  - 非管理员查询他人时，AI 按权限策略礼貌拒绝并引导联系管理员
+  - 新增权限拒绝强制中文回复模板与 FOCUS RULE，杜绝 AI 越权输出数据或编造统计
+- 新增 i18n 文案：`error_ai_not_configured_for_user`、`hint_ai_send_btn_disabled`
 
-### Added (新增)
+### Changed
+- 用户消息改为纯文本渲染（保留尖括号语法原文），不再走完整 Markdown 渲染
+- 前端错误消息不再写入 localStorage，避免旧错误残留到下次会话
+- 发送按钮在 AI 未就绪时禁用并显示提示（`data-ai-ready` 前端兜底 + 服务端 503 预检双保险）
 
-#### AI 能力核心枢纽 (AI Capability Hub)
+### Fixed
+- **修复 AI 返回无关用户名（历史对话"串台"）**：Permission Denied 文案中字符串插值写法错误（`{target_user.name}` 未插值），导致 AI 用历史对话中的其他名字填补
+- **修复普通用户显示「内部错误: API key not configured」**：服务端预检 + 友好提示「请联系管理员」，职责分离
+- **修复 `<姓名/工号>` 尖括号语法在消息气泡中被吞掉**：`renderMarkdown` 把 `<admin>` 当未知 HTML 标签处理
+- **修复视图模板 `uninitialized constant AiProvider`**：改用完整命名空间 `AiAssistant::AiProvider`
+- **修复聊天头像渲染崩坏（HTML 属性转义）**：`ActiveSupport::SafeBuffer` 需先 `.to_str` 再转义，并改用 `<template>` 传递
+- **修复编辑 AI 服务商时 API Key 被清空**：编辑页不再回显密钥明文（安全），留空则保留原值；保存时空密钥不再覆盖已存密钥；「自动获取模型」在编辑时留空密钥也能回退使用已保存的密钥
 
-- **模块级公开 API (`AiAssistant`)** — 一行调用即可完成 AI 对话，自动解析服务商、处理认证与错误。
-  - `AiAssistant.chat` / `AiAssistant.chat_stream` / `AiAssistant.chat_messages`
-  - `AiAssistant.enabled?` / `AiAssistant.ready?` / `AiAssistant.available_providers` / `AiAssistant.default_provider`
-- **Mixin 混入模块 (`AiAssistant::Mixins::AiCapable`)** — 其他 Redmine 插件通过 `include` 即可零配置获得 AI 能力。
-  - 提供 `ai_chat` / `ai_chat_messages` / `ai_chat_stream` / `ai_ready?` 方法
-- **流式响应支持 (SSE)** — 基于 Server-Sent Events 的 `chat_stream` 回调接口
-- **向后兼容** — 保留原始 `AiClient` 类作为薄封装
+## [1.1.0] - 2026-07-30
 
-#### 端点用户功能 (End-User Features)
+### Added
+- **统一 AI 能力层（AI Capability Hub）**：
+  - 模块级 API：`AiAssistant.chat` / `AiAssistant.chat_messages` / `AiAssistant.chat_stream` / `AiAssistant.ready?`
+  - 面向其他插件的 Mixin 模块：`AiAssistant::Mixins::AiCapable`（提供 `ai_chat` / `ai_chat_stream` 等）
+  - 客户端实例 API：provider 指定、温度、超时、`linkify` 等高级选项
+- 多个审计日志字段（记录消息归属的服务商快照等）
+- 任务上下文时间范围统计增强（支持按周期/时间段聚合）
 
-- **悬浮聊天组件** — 右下角可拖拽的 AI 对话气泡
-  - Markdown 渲染、语法高亮、表格支持
-  - 对话历史持久化，可配置上下文窗口大小
-  - 快捷提问模板（一键发送常用查询）
-- **工作报告生成** — 一键生成日报 / 周报 / 月报
-  - 基于真实活动数据：工时记录、任务变更、评论、Wiki 更新
-  - AI 总结为结构化 Markdown 文档
-- **智能数据注入** — 自动检测任务/报告类查询，将真实 Redmine Issue 数据作为上下文注入
-  - 支持 `#123` 任务编号引用
-  - 关键词触发（任务、问题、状态、优先级等）
+### Changed
+- 保留 `AiClient` 作为向后兼容的薄封装
 
-#### 管理员功能 (Admin Features)
+## [1.0.0] - 2026-07-23
 
-- **多服务商管理** — 配置多个 AI 后端
-  - 支持 `tdp`（TDP 平台集成）和 `custom`（任意 OpenAI 兼容接口）
-  - 兼容 OpenAI、DeepSeek、Ollama、vLLM 等
-  - 一键自动获取可用模型列表
-- **只读守卫提示 (`GuardPrompt`)** — 涉及业务数据时自动限制 AI 为只读分析模式
-- **自定义系统提示词** — 定义组织级 AI 行为规范
-- **用量统计仪表板** — 按用户统计 Token 消耗量和调用次数
-  - CSV / PDF 导出功能
-- **API 密钥加密** — 采用 AES-256-CBC 加密存储服务商凭证
-
-#### REST API 接口
-
-| 模块 | 接口 | 说明 |
-|------|------|------|
-| 聊天 | `POST /ai_assistant/chat/send_message` | 发送消息 |
-| 聊天 | `GET /ai_assistant/chat/history` | 获取对话历史 |
-| 聊天 | `GET /ai_assistant/chat/clear` | 清除会话 |
-| 报告 | `GET /ai_assistant/reports/daily` | 今日日报 |
-| 报告 | `GET /ai_assistant/reports/weekly` | 本周周报 |
-| 报告 | `GET /ai_assistant/reports/monthly` | 本月月报 |
-| 报告 | `POST /ai_assistant/reports/generate` | 自定义报告 |
-| 统计 | `GET /ai_assistant/stats` | 用量统计仪表板 |
-| 统计 | `GET /ai_assistant/stats/export` | 导出统计 |
-
-#### 数据库
-
-- `ai_providers` — AI 服务商配置表（名称、标识、类型、API 地址、加密密钥、模型列表等）
-- `ai_messages` — AI 消息持久化表（用户、会话、角色、内容、Token 消耗量等）
-
-#### 国际化
-
-- 中文 (`zh.yml`) 和 English (`en.yml`) 完整本地化支持
-
-#### CI/CD
-
-- `.cnb.yml` — CNB 流水线配置（GitHub 同步推送）
-- `.cnb/web_trigger.yml` — 分支详情页「推送到 GitHub」按钮
-
-### Requirements (环境要求)
-
-- Redmine >= 6.1.0
-- Ruby >= 3.2.0
-- 至少一个 OpenAI 兼容的 AI 服务商
-
----
-
-[1.1.0]: https://cnb.cool/xindu.site/redmine_ai_assistant/-/tags/v1.1.0
+### Added
+- 初始发布
+- **悬浮聊天组件**：右下角可拖拽 AI 对话气泡，支持 Markdown 渲染、语法高亮、表格
+- **工作报告生成**：基于真实活动数据（工时、任务变更、评论、Wiki 更新）一键生成日报 / 周报 / 月报
+- **智能数据注入**：自动检测任务 / 报告类查询并注入真实 Redmine 数据
+- **对话历史**：持久化聊天记录，可配置上下文窗口（1–50 条）
+- **多服务商管理**：支持 OpenAI、DeepSeek、Ollama、vLLM 等任意 OpenAI 兼容接口
+- **API 密钥加密**：AES-256-CBC 静态加密存储
+- **只读守卫提示**：涉及业务数据时限制 AI 为只读分析模式
+- **用量统计**：按用户统计 Token 消耗与调用次数，支持 CSV/PDF 导出
+- **模型自动获取**：一键从 `/models` 接口拉取可用模型列表
+- **自定义提示词**：组织级系统提示词 + 插件级自定义头像 / 图标

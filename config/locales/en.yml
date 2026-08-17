@@ -59,6 +59,8 @@ en:
   text_provider_name_hint: "Choose from the list or type a custom name (OpenAI-compatible format). The slug must be unique"
   text_provider_type_hint: "tdp=TDP platform, custom=other OpenAI-compatible API"
   text_api_url_hint: "Full API base URL, e.g. https://api.openai.com/v1"
+  text_api_key_keep_hint: "The API key is stored encrypted and is not shown when editing for security reasons. Leave blank to keep the current value."
+  placeholder_api_key_keep: "Leave blank to keep the current key"
   text_available_models_hint: "JSON array of model names"
   text_settings_hint: "JSON object for extra parameters"
   text_guard_prompt_hint: "When enabled, AI is restricted to read-only mode when discussing business data"
@@ -81,6 +83,8 @@ en:
   error_invalid_response: "Provider returned an unparseable response"
   error_no_models_found: "No available models found"
   error_fetch_models_failed: "Failed to fetch models"
+  error_ai_not_configured_for_user: "AI service is not ready yet. Please contact the administrator to configure an available provider in [Administration → AI Providers]."
+  hint_ai_send_btn_disabled: "AI service not configured, please contact the administrator"
 
   # ========== 按钮 ==========
   button_fetch_models: "Auto Fetch"

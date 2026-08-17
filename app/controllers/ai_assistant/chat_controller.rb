@@ -15,6 +15,14 @@ module AiAssistant
         return
       end
 
+      # 服务端兜底预检：插件启用但 AI 服务尚未配置完成时，
+      # 返回友好提示而不是让用户看到"内部错误"。
+      unless ai_ready_for_user?
+        render json: { error: l(:error_ai_not_configured_for_user) },
+               status: :service_unavailable
+        return
+      end
+
       # 保存用户消息
       user_msg = AiMessage.create!(
         user:            User.current,
@@ -107,10 +115,11 @@ module AiAssistant
     TASK_QUERY_KEYWORDS = %w[
       任务 我的任务 task tasks 指派 assign 我 待办 代办 todo
       问题 issue issues
-      今天 今日 today 本周 本月 week month
+      今天 今日 today 本周 本月 week month 今年 去年
       状态 status 优先级 priority 进度 progress
       报告 report reports 汇总 summary 总结 概括 详情 详细
       版本 version versions 截止 逾期 overdue 预计 计划
+      统计 statistics count 所有 全部
     ].freeze
 
     def resolve_provider
@@ -118,6 +127,16 @@ module AiAssistant
       if provider_id.present?
         AiProvider.enabled.find_by(id: provider_id)
       end || AiProvider.enabled.ordered.first
+    end
+
+    # 检查 AI 是否对当前用户真正可用（仅校验：是否有启用的服务商且其 API key 已填写）。
+    # API key 是管理员集中配置的，不应在每个用户气泡里泄露"未配置"等内部细节。
+    def ai_ready_for_user?
+      provider = resolve_provider
+      return false if provider.nil?
+      return false if provider.api_key.blank?
+
+      true
     end
 
     def load_conversation_history(conversation_id)
@@ -188,13 +207,13 @@ module AiAssistant
       "[##{issue_id}](#{issue_url(issue_id)})"
     end
 
-    # 判断是否为任务/报告类查询：命中关键词 或 包含 #ID
+    # 判断是否为任务/报告类查询：命中关键词、包含 #ID、或指定了 <姓名/工号>
     def task_query?(message)
       return false if message.blank?
 
       lower = message.downcase
       keyword_matched = TASK_QUERY_KEYWORDS.any? { |kw| lower.include?(kw) }
-      keyword_matched || extract_issue_ids(message).any?
+      keyword_matched || extract_issue_ids(message).any? || extract_target_keyword(message).present?
     end
 
     # 生成任务关键词提示，在用户未触发任务查询时注入系统提示
@@ -219,16 +238,116 @@ module AiAssistant
     end
 
     # 构建任务上下文数据
-    # 若消息中包含 #ID，优先返回这些特定任务；否则返回当前用户的任务列表
+    # - 若消息中包含 #ID，优先返回这些特定任务
+    # - 若消息包含 <姓名/工号>，尝试解析指定指派人（仅管理员可查他人）
+    # - 否则返回当前用户的任务列表
+    # message 用于解析时间范围（如"今年"、"本月"、"近30天"）
     def build_task_context(message)
-      user = User.current
+      current_user = User.current
       specific_ids = extract_issue_ids(message)
+      target_keyword = extract_target_keyword(message)
 
       if specific_ids.any?
-        build_specific_issue_context(specific_ids, user)
+        build_specific_issue_context(specific_ids, current_user)
+      elsif target_keyword
+        build_target_user_context(target_keyword, current_user, message)
       else
-        build_user_assigned_context(user)
+        build_user_assigned_context(current_user, message)
       end
+    end
+
+    # 从消息中提取 <姓名/工号> 目标关键字（支持中文/英文尖括号）
+    def extract_target_keyword(message)
+      match = message.to_s.match(/[<＜]\s*([^>＞]+?)\s*[>＞]/)
+      match ? match[1].strip : nil
+    end
+
+    # 按关键字查找用户：优先 login（工号）精确匹配，再按姓名（全名/名/姓）匹配
+    def find_user_by_keyword(keyword)
+      return nil if keyword.blank?
+
+      kw = keyword.strip
+
+      # 1. 登录名（工号/账号）精确匹配
+      user = User.find_by(login: kw)
+      return user if user
+
+      # 2. 姓或名精确匹配
+      candidates = User.where('firstname = ? OR lastname = ?', kw, kw).to_a
+
+      # 3. 全名组合匹配（忽略空格，兼容 "姓+名" 与 "名+姓" 两种组合顺序，
+      #    例如 lastname=邹 + firstname=悦 可被 <邹悦> 命中）
+      if candidates.empty?
+        compact = kw.tr(' ', '')
+        # 用关键字中的字符做 LIKE 缩小候选集，再在 Ruby 中做全名组合比对
+        char_patterns = compact.chars.reject(&:blank?).first(3)
+        if char_patterns.any?
+          cond = char_patterns.map { 'firstname LIKE ? OR lastname LIKE ?' }.join(' OR ')
+          args = char_patterns.flat_map { |c| ["%#{c}%", "%#{c}%"] }
+          User.where(cond, *args).limit(200).each do |u|
+            next if u.firstname.blank? && u.lastname.blank?
+            full_name     = "#{u.firstname}#{u.lastname}".tr(' ', '')
+            full_name_rev = "#{u.lastname}#{u.firstname}".tr(' ', '')
+            candidates << u if full_name == compact || full_name_rev == compact
+          end
+        end
+      end
+
+      candidates.uniq!
+      candidates.size == 1 ? candidates.first : nil
+    end
+
+    # 构建指定指派人的上下文（含权限校验）
+    def build_target_user_context(keyword, current_user, message)
+      target_user = find_user_by_keyword(keyword)
+
+      if target_user.nil?
+        return <<~TEXT
+          ## User Not Found
+
+          No user matched "<#{keyword}>" (by login/employee ID or name). The requested assignee
+          does not exist or the keyword is ambiguous.
+
+          Politely inform the user (in Chinese) that the specified assignee was not found in the
+          system, and suggest using the exact name or employee ID (e.g. <姓名> or <工号>).
+          Do NOT fabricate any statistics.
+        TEXT
+      end
+
+      unless target_user.id == current_user.id || current_user.admin?
+        return <<~TEXT
+          ## Permission Denied (非管理员无权查询他人任务统计)
+
+          You were asked to generate task statistics for user "#{target_user.name}" (login: #{target_user.login}),
+          but the current user "#{current_user.name}" (login: #{current_user.login}) is NOT an administrator.
+
+          **FOCUS RULE (highest priority)**: The ONLY user being analyzed in this query is "#{target_user.name}".
+          Earlier messages in the conversation may mention OTHER users (e.g. someone that did not exist
+          in the system, or a previous test target) — IGNORE those completely. Do NOT mention, reference,
+          compare with, or carry over statistics about any other user besides "#{target_user.name}".
+
+          **POLICY (must follow)**: Only administrators may query other users' task statistics.
+          Regular users can ONLY view statistics for themselves — querying anyone else is strictly
+          forbidden by this system's data access policy.
+
+          Required response (in Chinese, polite but firm). Use the EXACT name "#{target_user.name}"
+          (login: #{target_user.login}) throughout — DO NOT substitute any other name:
+          1. Apologize and decline: 「抱歉，您没有查看同事「#{target_user.name}」任务数据的权限。」
+          2. Explain: 「根据系统权限策略，只有管理员可以查看他人的任务统计。普通用户只能查看自己的任务。」
+          3. Offer the only allowed alternative: 「如需查看您自己的任务，请直接说『统计我今年内的所有任务』即可。」
+          4. Suggest: 「如确有需要，请联系系统管理员协助查询。」
+
+          **ABSOLUTELY DO NOT**:
+          - Reveal any task counts, lists, or any information about "#{target_user.name}".
+          - Estimate, infer, or fabricate ANY data about "#{target_user.name}".
+          - Mention or substitute with ANY other user name (even one that appeared in earlier
+          conversation turns). The forbidden user is EXACTLY "#{target_user.name}" and ONLY this name.
+          - Provide workarounds, indirect clues, or partial disclosures.
+          - Mention system internals (admin table, Role IDs, etc.).
+        TEXT
+      end
+
+      build_user_assigned_context(target_user, message)
     end
 
     # 构建特定任务编号的上下文
@@ -261,55 +380,161 @@ module AiAssistant
     end
 
     # 构建当前用户的任务上下文数据
-    def build_user_assigned_context(user)
-      # 查询指派给当前用户的未关闭任务
-      open_issues = Issue.where(assigned_to_id: user.id)
-                        .where(status_id: IssueStatus.where(is_closed: false).pluck(:id))
-                        .includes(:project, :tracker, :status, :priority, :fixed_version)
-                        .order(due_date: :asc, created_on: :desc)
-                        .limit(50)
+    #
+    # - 若消息中包含时间范围（今年/本月/近30天等），统计该时间段内指派给用户的
+    #   **所有状态**任务（含已关闭），并附带汇总统计与分布，供报告/总结类场景使用；
+    # - 若未指定时间范围，则返回未关闭任务列表 + 最近关闭的任务。
+    def build_user_assigned_context(user, message = nil)
+      time_range = extract_time_range(message)
+      scope = Issue.where(assigned_to_id: user.id)
+      scope = scope.where(created_on: time_range) if time_range
 
-      # 查询指派给当前用户今天更新的任务
-      today_updated = Issue.where(assigned_to_id: user.id)
-                          .where.not(status_id: IssueStatus.where(is_closed: false).pluck(:id))
-                          .where(updated_on: Time.current.beginning_of_day..Time.current.end_of_day)
-                          .includes(:project, :tracker, :status, :priority, :fixed_version)
-                          .order(updated_on: :desc)
-                          .limit(10)
+      open_status_ids   = IssueStatus.where(is_closed: false).pluck(:id)
+      closed_status_ids = IssueStatus.where(is_closed: true).pluck(:id)
 
-      # 逾期任务统计
-      overdue_count = open_issues.count { |i| i.due_date.present? && i.due_date < Date.current }
+      open_scope   = scope.where(status_id: open_status_ids)
+      closed_scope = scope.where(status_id: closed_status_ids)
+
+      total_count  = scope.count
+      open_count   = open_scope.count
+      closed_count = closed_scope.count
+
+      # 逾期未关闭统计
+      overdue_count = open_scope.where('due_date IS NOT NULL AND due_date < ?', Date.current).count
+
+      # 分布统计
+      status_distribution  = scope.joins(:status).group('issue_statuses.name').count
+      project_distribution = scope.joins(:project).group('projects.name').count
+      tracker_distribution = scope.joins(:tracker).group('trackers.name').count
+      monthly_trend = scope.pluck(:created_on).compact
+                           .group_by { |t| t.strftime('%Y-%m') }
+                           .transform_values(&:count).sort.to_h
+
+      # 详细列表
+      open_issues = open_scope.includes(:project, :tracker, :status, :priority, :fixed_version)
+                              .order(created_on: :desc)
+                              .limit(50)
+
+      closed_issues = closed_scope.includes(:project, :tracker, :status, :priority, :fixed_version)
+                                  .order(Arel.sql('COALESCE(closed_on, updated_on) DESC'))
+                                  .limit(30)
 
       lines = []
-
+      period_label = time_range ? format_period_label(time_range) : 'All Time'
       lines << "## Real #{system_app_name.upcase} Data - Assigned Issues/Tasks for #{user.name}\n"
 
-      if open_issues.empty?
-        lines << "**No open issues/tasks assigned to #{user.name}.**"
-      else
-        lines << "### Open Issues Assigned to You (#{open_issues.count} total, #{overdue_count} overdue):"
+      # 汇总统计
+      lines << "### Summary (Period: #{period_label})"
+      lines << "- Total tasks: #{total_count}"
+      lines << "- Open tasks: #{open_count}"
+      lines << "- Closed tasks: #{closed_count}"
+      lines << "- Overdue (open & past due date): #{overdue_count}"
+      lines << ""
+
+      # 状态分布
+      unless status_distribution.empty?
+        lines << "### Distribution by Status"
+        status_distribution.sort_by { |_, c| -c }.each { |name, count| lines << "  - #{name}: #{count}" }
+        lines << ""
+      end
+
+      # 项目分布
+      unless project_distribution.empty?
+        lines << "### Distribution by Project"
+        project_distribution.sort_by { |_, c| -c }.each { |name, count| lines << "  - #{name}: #{count}" }
+        lines << ""
+      end
+
+      # 类型分布
+      unless tracker_distribution.empty?
+        lines << "### Distribution by Tracker"
+        tracker_distribution.sort_by { |_, c| -c }.each { |name, count| lines << "  - #{name}: #{count}" }
+        lines << ""
+      end
+
+      # 每月创建趋势
+      unless monthly_trend.empty?
+        lines << "### Monthly Trend (created)"
+        monthly_trend.each { |ym, count| lines << "  - #{ym}: #{count}" }
+        lines << ""
+      end
+
+      # 打开任务明细
+      if open_issues.any?
+        lines << "### Open Issues Assigned to #{user.name} (#{open_issues.size} shown of #{open_count}):"
         open_issues.each do |i|
           due = i.due_date ? "Due: #{i.due_date}" : "No due date"
           ver = i.fixed_version ? "Version: #{i.fixed_version.name}" : nil
           extra = [due, "Progress: #{i.done_ratio}%", ver].compact.join(", ")
           overdue = (i.due_date && i.due_date < Date.current) ? " ⚠️OVERDUE" : ""
-          lines << "  - #{issue_link(i.id)} [#{i.tracker&.name}] [#{i.status&.name}] [#{i.priority&.name}] #{i.subject}#{overdue} (Project: #{i.project&.name}, #{extra})"
+          lines << "  - #{issue_link(i.id)} [#{i.tracker&.name}] [#{i.status&.name}] [#{i.priority&.name}] #{i.subject}#{overdue} (Project: #{i.project&.name}, Created: #{i.created_on.to_date}, #{extra})"
         end
-      end
-
-      unless today_updated.empty?
         lines << ""
-        lines << "### Recently Resolved/Updated Today (assigned to you, #{today_updated.count} total):"
-        today_updated.each do |i|
-          ver = i.fixed_version ? "Version: #{i.fixed_version.name}" : nil
-          extra = ["Progress: #{i.done_ratio}%", ver].compact.join(", ")
-          lines << "  - #{issue_link(i.id)} [#{i.status&.name}] #{i.subject} (Project: #{i.project&.name}, #{extra})"
-        end
       end
 
+      # 最近关闭任务明细
+      if closed_issues.any?
+        lines << "### Recently Closed Issues (#{closed_issues.size} shown of #{closed_count}):"
+        closed_issues.each do |i|
+          ver = i.fixed_version ? "Version: #{i.fixed_version.name}" : nil
+          extra = ["Closed: #{i.closed_on&.to_date || 'N/A'}", ver].compact.join(", ")
+          lines << "  - #{issue_link(i.id)} [#{i.tracker&.name}] [#{i.status&.name}] #{i.subject} (Project: #{i.project&.name}, #{extra})"
+        end
+        lines << ""
+      end
+
+      # 空列表提示
+      if total_count == 0
+        lines << "**No issues/tasks assigned to #{user.name} in the specified period.**"
+        lines << ""
+      end
+
+      lines << "**CRITICAL RULE: Only reference the tasks listed above for user #{user.name}. If the list shows no tasks, tell the user they have no assigned tasks. For any count/statistics, use the Summary numbers above as the ground truth. NEVER invent, guess, or fabricate tasks that are not explicitly listed above.**"
       lines << ""
-      lines << "**CRITICAL RULE: Only reference the tasks listed above. If the list shows no tasks, tell the user they currently have no assigned tasks. NEVER invent, guess, or fabricate tasks that are not explicitly listed above.**"
+      lines << "**FOCUS RULE: The ONLY user being analyzed in this query is #{user.name}. Do NOT mention, reference, compare with, or invent statistics about any other user (including ones that appeared in earlier conversation turns). If the user asks about someone else, politely say you can only report on #{user.name} in this turn.**"
       lines.join("\n")
+    end
+
+    # 从消息中提取时间范围（今年/去年/本月/上周/近N天/近N个月等）
+    # 返回 Date Range 或 nil（未指定时间范围）
+    def extract_time_range(message)
+      return nil if message.blank?
+
+      text = message.downcase
+      today = Date.current
+
+      if text =~ /今年|本年度|this year/
+        today.beginning_of_year..today.end_of_year
+      elsif text =~ /去年|last year/
+        (today - 1.year).beginning_of_year..(today - 1.year).end_of_year
+      elsif text =~ /本月|这个月|this month/
+        today.beginning_of_month..today.end_of_month
+      elsif text =~ /上月|上个月|last month/
+        (today - 1.month).beginning_of_month..(today - 1.month).end_of_month
+      elsif text =~ /本周|这周|this week/
+        today.beginning_of_week..today.end_of_week
+      elsif text =~ /上周|last week/
+        (today - 1.week).beginning_of_week..(today - 1.week).end_of_week
+      elsif text =~ /今天|今日|today/
+        today..today
+      elsif text =~ /昨天|昨日|yesterday/
+        (today - 1.day)..(today - 1.day)
+      elsif text =~ /近(\d+)天|最近(\d+)天|last (\d+) days/
+        days = [$1, $2, $3].compact.map(&:to_i).first || 30
+        (today - days.days)..today
+      elsif text =~ /近(\d+)个月|最近(\d+)个月|近半年|半年内|last (\d+) months/
+        months = [$1, $2, $3].compact.map(&:to_i).first
+        months = 6 if months.nil? # 近半年
+        (today - months.months)..today
+      elsif text =~ /近(\d+)年|最近(\d+)年|last (\d+) years/
+        years = [$1, $2, $3].compact.map(&:to_i).first || 1
+        (today - years.years)..today
+      end
+    end
+
+    # 格式化时间范围标签
+    def format_period_label(range)
+      "#{range.begin.to_date} ~ #{range.end.to_date}"
     end
 
     def build_messages(system_content, history, current_message)

@@ -29,7 +29,7 @@ module AiAssistant
       @model    = @config[:model] || @provider.default_model
 
       raise ArgumentError, 'No AI provider configured or enabled' if @provider.nil?
-      raise ArgumentError, 'API key not configured' if @provider.api_key.blank?
+      raise ArgumentError, 'AI provider is missing API key (please contact administrator)' if @provider.api_key.blank?
     end
 
     # ========== 公共接口 ==========
